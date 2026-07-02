@@ -8,10 +8,19 @@ use crate::constants;
 pub fn extract_bind(line: &str) -> Option<HashMap<&'static str, String>> {
     static RE: OnceLock<Regex> = OnceLock::new();
     let re = RE.get_or_init(|| Regex::new(constants::RE_PATTERN).unwrap());
+
     let caps = re.captures(line)?;
+    let raw_cmd = &caps["raw_cmd"];
+
+    let cleaned = raw_cmd
+        .replace("..", "")
+        .replace('"', "")
+        .split_whitespace()
+        .collect::<Vec<&str>>()
+        .join(" ");
 
     Some(HashMap::from([
-        ("kb", format!("{} + {}", &caps["mod"], &caps["key"])),
+        ("kb", cleaned),
         ("desc", String::from("none")),
     ]))
 }
