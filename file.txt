@@ -1,0 +1,3 @@
+hl.bind(mainMod .. " + " .. "R", hl.dsp.exec_cmd("kitty -e yazi"))
+hl.bind(mainMod .. " + " .. "R", hl.dsp.exec_cmd("kitty -e yazi"))
+hl.bind(mainMod .. " + " .. "R", hl.dsp.exec_cmd("kitty -e yazi"))
