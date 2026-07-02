@@ -1,7 +1,6 @@
-use crate::models::config;
-
 use std::path::Path;
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct Config {
     config_path: String,

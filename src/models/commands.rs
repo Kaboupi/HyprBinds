@@ -1,4 +1,6 @@
+use crate::extract_bind;
 use std::collections::HashMap;
+use std::io::BufRead;
 
 #[derive(Debug)]
 pub struct Commands {
@@ -6,14 +8,18 @@ pub struct Commands {
 }
 
 impl Commands {
-    pub fn new() -> Commands {
-        Commands {
-            commands: Vec::new(),
-        }
+    pub fn new(items: Vec<HashMap<&'static str, String>>) -> Commands {
+        Commands { commands: items }
     }
 
-    pub fn from(items: Vec<HashMap<&'static str, String>>) -> Commands {
-        Commands { commands: items }
+    pub fn from_reader<T: BufRead + Sized>(reader: T) -> Commands {
+        let commands: Vec<HashMap<&'static str, String>> = reader
+            .lines()
+            .map_while(Result::ok)
+            .filter_map(|line| extract_bind(&line))
+            .collect();
+
+        Commands::new(commands)
     }
 
     pub fn show(&self) -> () {
