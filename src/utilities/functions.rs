@@ -24,8 +24,8 @@ pub fn extract_bind(line: &str) -> Option<HashMap<&'static str, String>> {
         .join(" ");
 
     Some(HashMap::from([
-        ("kb", cleaned),
-        ("desc", String::from(raw_desc)),
+        (constants::K_KB, cleaned),
+        (constants::K_DESC, String::from(raw_desc)),
     ]))
 }
 
@@ -52,8 +52,8 @@ mod test {
         let test_case: &str =
             r#"hl.bind(mainMod .. " + " .. "R", hl.dsp.exec_cmd("kitty -e yazy"))"#;
         let result = Some(HashMap::from([
-            ("kb", String::from("mainMod + R")),
-            ("desc", String::from(constants::NO_DESCRIPTION)),
+            (constants::K_KB, String::from("mainMod + R")),
+            (constants::K_DESC, String::from(constants::NO_DESCRIPTION)),
         ]));
 
         assert_eq!(crate::extract_bind(&test_case), result);
@@ -63,8 +63,8 @@ mod test {
     fn test_extract_bind_multi_key() {
         let test_case: &str = r#"hl.bind(mainMod .. " + " .. "SHIFT" .. " + " .. "R", hl.dsp.exec_cmd("kitty -e yazy"))"#;
         let result = Some(HashMap::from([
-            ("kb", String::from("mainMod + SHIFT + R")),
-            ("desc", String::from(constants::NO_DESCRIPTION)),
+            (constants::K_KB, String::from("mainMod + SHIFT + R")),
+            (constants::K_DESC, String::from(constants::NO_DESCRIPTION)),
         ]));
 
         assert_eq!(crate::extract_bind(&test_case), result);
@@ -74,8 +74,8 @@ mod test {
     fn test_extract_bind_with_description() {
         let test_case: &str = r#"hl.bind(mainMod .. " + " .. "SHIFT" .. " + " .. "R", hl.dsp.exec_cmd("kitty -e yazy"), { description = "Open file manager" })"#;
         let result = Some(HashMap::from([
-            ("kb", String::from("mainMod + SHIFT + R")),
-            ("desc", String::from("Open file manager")),
+            (constants::K_KB, String::from("mainMod + SHIFT + R")),
+            (constants::K_DESC, String::from("Open file manager")),
         ]));
 
         assert_eq!(crate::extract_bind(&test_case), result);

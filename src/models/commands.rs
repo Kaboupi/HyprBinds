@@ -1,3 +1,4 @@
+use crate::constants::{K_DESC, K_KB};
 use crate::extract_bind;
 use std::collections::HashMap;
 use std::io::BufRead;
@@ -24,10 +25,10 @@ impl Commands {
 
     pub fn show(&self) -> () {
         for (idx, item) in self.commands.iter().enumerate() {
-            let kb = item.get("kb").unwrap();
-            let desc = item.get("desc").unwrap();
+            let kb = item.get(K_KB).unwrap();
+            let desc = item.get(K_DESC).unwrap();
 
-            println!("{}: kb = \"{}\", desc = \"{}\"", idx, kb, desc);
+            println!(r#"{}: kb = "{}", desc = "{}""#, idx, kb, desc);
         }
     }
 }

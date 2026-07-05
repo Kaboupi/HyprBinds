@@ -10,4 +10,7 @@ pub mod constants {
     pub const ARG_CONFIG_PATH: &str = "config-path";
     // TODO: Replace absolute path
     pub const DEFAULT_CONFIG_PATH: &str = "/home/kaboupi/.config/hypr/keybinds.lua";
+
+    pub const K_KB: &str = "kb";
+    pub const K_DESC: &str = "desc";
 }
