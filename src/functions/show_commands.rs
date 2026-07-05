@@ -10,10 +10,16 @@ use crossterm::{
 use ratatui::{
     Terminal,
     backend::CrosstermBackend,
-    layout::{Constraint, Layout},
+    layout::{Constraint, Direction, Layout},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Cell, Row, Table, TableState},
+    widgets::{Block, Borders, Cell, Paragraph, Row, Table, TableState},
 };
+
+#[derive(Debug)]
+enum InputMode {
+    Normal,
+    Editing,
+}
 
 pub fn show_commands(commands: Commands) {
     enable_raw_mode().unwrap();
@@ -27,23 +33,52 @@ pub fn show_commands(commands: Commands) {
         table_state.select(Some(0));
     }
 
+    let mut input_mode = InputMode::Normal;
+    let mut input = String::new();
+
     loop {
+        let filtered_commands: Vec<_> = commands
+            .commands
+            .iter()
+            .filter(|map| {
+                if input.is_empty() {
+                    return true;
+                }
+                let search_term = input.to_lowercase();
+                map.values()
+                    .any(|val| val.to_lowercase().contains(&search_term))
+            })
+            .collect();
+
+        if let Some(selected) = table_state.selected() {
+            if filtered_commands.is_empty() {
+                table_state.select(None);
+            } else if selected >= filtered_commands.len() {
+                table_state.select(Some(filtered_commands.len() - 1));
+            }
+        } else if !filtered_commands.is_empty() {
+            table_state.select(Some(0));
+        }
+
         terminal
             .draw(|f| {
-                let rects = Layout::default()
-                    .constraints([Constraint::Percentage(100)])
+                let chunks = Layout::default()
+                    .direction(Direction::Vertical)
+                    .constraints([Constraint::Min(0), Constraint::Length(3)])
                     .split(f.area());
 
-                let headers_vec = Vec::from(constants::D_COL_ORDER.map(|s| s.to_string()));
+                let headers_vec =
+                    Vec::from([constants::K_KB.to_string(), constants::K_DESC.to_string()]);
+                let headers_vec_alias =
+                    Vec::from(["Keybind".to_string(), "Description".to_string()]);
 
-                let header_row = Row::new(headers_vec.iter().map(|h| {
+                let header_row = Row::new(headers_vec_alias.iter().map(|h| {
                     Cell::from(h.as_str()).style(Style::default().add_modifier(Modifier::BOLD))
                 }))
                 .style(Style::default().fg(Color::Yellow))
                 .bottom_margin(1);
 
-                let rows: Vec<Row> = commands
-                    .commands
+                let rows: Vec<Row> = filtered_commands
                     .iter()
                     .map(|map| {
                         let cells = headers_vec.iter().map(|header| {
@@ -61,11 +96,9 @@ pub fn show_commands(commands: Commands) {
 
                 let table = Table::new(rows, widths)
                     .header(header_row)
-                    .block(
-                        Block::default()
-                            .borders(Borders::ALL)
-                            .title(" Hyprland Binds ([q] to exit, ↑/↓ or j/k to scroll) "),
-                    )
+                    .block(Block::default().borders(Borders::ALL).title(
+                        " Hyprland Binds ([q] to exit, [/] to search, ↑/↓ or j/k to scroll) ",
+                    ))
                     .row_highlight_style(
                         Style::default()
                             .bg(Color::Indexed(237))
@@ -73,29 +106,72 @@ pub fn show_commands(commands: Commands) {
                     )
                     .highlight_symbol(">> ");
 
-                f.render_stateful_widget(table, rects[0], &mut table_state);
+                f.render_stateful_widget(table, chunks[0], &mut table_state);
+
+                let search_title = match input_mode {
+                    InputMode::Normal => " Search (Press '/' to type) ",
+                    InputMode::Editing => " Search (Press 'Enter' or 'Esc' to finish) ",
+                };
+
+                let search_style = match input_mode {
+                    InputMode::Normal => Style::default(),
+                    InputMode::Editing => Style::default().fg(Color::Yellow),
+                };
+
+                let search_block = Paragraph::new(input.as_str())
+                    .style(search_style)
+                    .block(Block::default().borders(Borders::ALL).title(search_title));
+
+                f.render_widget(search_block, chunks[1]);
+
+                if let InputMode::Editing = input_mode {
+                    // TODO: Replace with `set_cursor_position()`
+                    #[allow(deprecated)]
+                    f.set_cursor(
+                        chunks[1].x + input.chars().count() as u16 + 1,
+                        chunks[1].y + 1,
+                    );
+                }
             })
             .unwrap();
 
         if event::poll(std::time::Duration::from_millis(16)).unwrap() {
             if let Event::Key(key) = event::read().unwrap() {
-                match key.code {
-                    KeyCode::Char('q') => break,
-                    KeyCode::Down | KeyCode::Char('j') => {
-                        if let Some(selected) = table_state.selected() {
-                            if selected < commands.commands.len() - 1 {
-                                table_state.select(Some(selected + 1));
+                match input_mode {
+                    InputMode::Normal => match key.code {
+                        KeyCode::Char('q') => break,
+                        KeyCode::Char('/') => {
+                            input_mode = InputMode::Editing;
+                        }
+                        KeyCode::Down | KeyCode::Char('j') => {
+                            if let Some(selected) = table_state.selected() {
+                                if selected < filtered_commands.len().saturating_sub(1) {
+                                    table_state.select(Some(selected + 1));
+                                }
                             }
                         }
-                    }
-                    KeyCode::Up | KeyCode::Char('k') => {
-                        if let Some(selected) = table_state.selected() {
-                            if selected > 0 {
-                                table_state.select(Some(selected - 1));
+                        KeyCode::Up | KeyCode::Char('k') => {
+                            if let Some(selected) = table_state.selected() {
+                                if selected > 0 {
+                                    table_state.select(Some(selected - 1));
+                                }
                             }
                         }
-                    }
-                    _ => {}
+                        _ => {}
+                    },
+                    InputMode::Editing => match key.code {
+                        KeyCode::Enter | KeyCode::Esc => {
+                            input_mode = InputMode::Normal;
+                            input.clear();
+                        }
+                        KeyCode::Char(c) => {
+                            input.push(c);
+                        }
+                        KeyCode::Backspace => {
+                            input.pop();
+                        }
+                        _ => {}
+                    },
                 }
             }
         }

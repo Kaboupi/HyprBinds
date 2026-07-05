@@ -18,5 +18,4 @@ pub mod constants {
     pub const K_DESC: &str = "desc";
 
     pub const DESC_EMPTY: &str = "No description provided.";
-    pub const D_COL_ORDER: [&str; 2] = [K_KB, K_DESC];
 }
