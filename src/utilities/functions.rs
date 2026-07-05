@@ -11,6 +11,10 @@ pub fn extract_bind(line: &str) -> Option<HashMap<&'static str, String>> {
 
     let caps = re.captures(line)?;
     let raw_cmd = &caps["raw_cmd"];
+    let raw_desc = match caps.name("desc") {
+        Some(m) => m.as_str(),
+        _ => constants::NO_DESCRIPTION,
+    };
 
     let cleaned = raw_cmd
         .replace("..", "")
@@ -21,7 +25,7 @@ pub fn extract_bind(line: &str) -> Option<HashMap<&'static str, String>> {
 
     Some(HashMap::from([
         ("kb", cleaned),
-        ("desc", String::from("none")),
+        ("desc", String::from(raw_desc)),
     ]))
 }
 
@@ -46,10 +50,10 @@ mod test {
     #[test]
     fn test_extract_bind_single_key() {
         let test_case: &str =
-            "hl.bind(mainMod .. \" + \" .. \"R\", hl.dsp.exec_cmd(\"kitty -e yazy\"))";
+            r#"hl.bind(mainMod .. " + " .. "R", hl.dsp.exec_cmd("kitty -e yazy"))"#;
         let result = Some(HashMap::from([
             ("kb", String::from("mainMod + R")),
-            ("desc", String::from("none")),
+            ("desc", String::from(constants::NO_DESCRIPTION)),
         ]));
 
         assert_eq!(crate::extract_bind(&test_case), result);
@@ -57,10 +61,21 @@ mod test {
 
     #[test]
     fn test_extract_bind_multi_key() {
-        let test_case: &str = "hl.bind(mainMod .. \" + \" .. \"SHIFT\" .. \" + \" .. \"R\", hl.dsp.exec_cmd(\"kitty -e yazy\"))";
+        let test_case: &str = r#"hl.bind(mainMod .. " + " .. "SHIFT" .. " + " .. "R", hl.dsp.exec_cmd("kitty -e yazy"))"#;
         let result = Some(HashMap::from([
             ("kb", String::from("mainMod + SHIFT + R")),
-            ("desc", String::from("none")),
+            ("desc", String::from(constants::NO_DESCRIPTION)),
+        ]));
+
+        assert_eq!(crate::extract_bind(&test_case), result);
+    }
+
+    #[test]
+    fn test_extract_bind_with_description() {
+        let test_case: &str = r#"hl.bind(mainMod .. " + " .. "SHIFT" .. " + " .. "R", hl.dsp.exec_cmd("kitty -e yazy"), { description = "Open file manager" })"#;
+        let result = Some(HashMap::from([
+            ("kb", String::from("mainMod + SHIFT + R")),
+            ("desc", String::from("Open file manager")),
         ]));
 
         assert_eq!(crate::extract_bind(&test_case), result);

@@ -20,7 +20,6 @@ fn main() {
     let path = cfg.get_path();
 
     if let Ok(f) = File::open(&path) {
-        println!("Try to open file: {}", path);
         let reader = BufReader::new(f);
         let commands = Commands::from_reader(reader);
         commands.show();

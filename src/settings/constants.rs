@@ -2,12 +2,12 @@ pub mod constants {
     pub const APP_NAME: &str = "hyprbinds";
     pub const APP_VERSION: &str = "v0.0.1";
 
-    // pub const RE_PATTERN: &str =
-    //     "hl\\.bind\\((?<mod>\\w+)\\s*\\.\\.\\s*\"\\s*\\+\\s*\"\\s*\\.\\.\\s*\"(?<key>\\w+)\"";
-    pub const RE_PATTERN: &str = "hl\\.bind\\((?<raw_cmd>[^,]+)";
+    pub const RE_PATTERN: &str =
+        r#"hl\.bind\((?<raw_cmd>[^,)]+)(?:.*description.*"(?<desc>[^"]*)")?"#;
 
+    pub const NO_DESCRIPTION: &str = "No description provided.";
+
+    pub const ARG_CONFIG_PATH: &str = "config-path";
     // TODO: Replace absolute path
-    pub const DEFAULT_CONFIG_PATH: &str = "~/.config/hypr/keybinds.lua";
-
-    pub const ARG_CONFIG_PATH: &str = "config-type";
+    pub const DEFAULT_CONFIG_PATH: &str = "/home/kaboupi/.config/hypr/keybinds.lua";
 }
