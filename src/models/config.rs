@@ -1,9 +1,10 @@
 use std::path::Path;
 
-#[allow(dead_code)]
+#[allow(unused)]
 #[derive(Debug)]
 pub struct Config {
     config_path: String,
+    // TODO: Add .conf file support
     config_type: String,
 }
 

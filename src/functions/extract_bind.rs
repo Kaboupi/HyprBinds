@@ -1,4 +1,3 @@
-use clap::{App, Arg};
 use regex::Regex;
 use std::collections::HashMap;
 use std::sync::OnceLock;
@@ -10,13 +9,13 @@ pub fn extract_bind(line: &str) -> Option<HashMap<&'static str, String>> {
     let re = RE.get_or_init(|| Regex::new(constants::RE_PATTERN).unwrap());
 
     let caps = re.captures(line)?;
-    let raw_cmd = &caps["raw_cmd"];
-    let raw_desc = match caps.name("desc") {
+    let kb_raw = &caps[constants::K_KB];
+    let desc = match caps.name(constants::K_DESC) {
         Some(m) => m.as_str(),
-        _ => constants::NO_DESCRIPTION,
+        _ => constants::DESC_EMPTY,
     };
 
-    let cleaned = raw_cmd
+    let kb_cleaned = kb_raw
         .replace("..", "")
         .replace('"', "")
         .split_whitespace()
@@ -24,22 +23,9 @@ pub fn extract_bind(line: &str) -> Option<HashMap<&'static str, String>> {
         .join(" ");
 
     Some(HashMap::from([
-        (constants::K_KB, cleaned),
-        (constants::K_DESC, String::from(raw_desc)),
+        (constants::K_KB, kb_cleaned),
+        (constants::K_DESC, String::from(desc)),
     ]))
-}
-
-pub fn parse_args() -> clap::ArgMatches<'static> {
-    App::new(constants::APP_NAME)
-        .version(constants::APP_VERSION)
-        .about("prints out keybinds for hyprland")
-        .arg(
-            Arg::with_name(constants::ARG_CONFIG_PATH)
-                .help("The file to search in")
-                .takes_value(true)
-                .required(false),
-        )
-        .get_matches()
 }
 
 #[cfg(test)]
@@ -53,7 +39,7 @@ mod test {
             r#"hl.bind(mainMod .. " + " .. "R", hl.dsp.exec_cmd("kitty -e yazy"))"#;
         let result = Some(HashMap::from([
             (constants::K_KB, String::from("mainMod + R")),
-            (constants::K_DESC, String::from(constants::NO_DESCRIPTION)),
+            (constants::K_DESC, String::from(constants::DESC_EMPTY)),
         ]));
 
         assert_eq!(crate::extract_bind(&test_case), result);
@@ -64,7 +50,7 @@ mod test {
         let test_case: &str = r#"hl.bind(mainMod .. " + " .. "SHIFT" .. " + " .. "R", hl.dsp.exec_cmd("kitty -e yazy"))"#;
         let result = Some(HashMap::from([
             (constants::K_KB, String::from("mainMod + SHIFT + R")),
-            (constants::K_DESC, String::from(constants::NO_DESCRIPTION)),
+            (constants::K_DESC, String::from(constants::DESC_EMPTY)),
         ]));
 
         assert_eq!(crate::extract_bind(&test_case), result);
@@ -82,23 +68,19 @@ mod test {
     }
 
     #[test]
-    fn test_args_extraction_empty() {
-        let test_case_buf = crate::parse_args();
-        let test_case = test_case_buf
-            .value_of(constants::ARG_CONFIG_PATH)
-            .unwrap_or_else(|| constants::DEFAULT_CONFIG_PATH);
+    fn test_extract_bind_multi_line_with_description() {
+        let test_case: &str = r#"\
+            hl.bind(
+                mainMod .. " + " .. "SHIFT" .. " + " .. "R",
+                hl.dsp.exec_cmd("kitty -e yazy"),
+                { description = "Open file manager" }
+            )"#;
 
-        assert_eq!(test_case, constants::DEFAULT_CONFIG_PATH);
-    }
+        let result = Some(HashMap::from([
+            (constants::K_KB, String::from("mainMod + SHIFT + R")),
+            (constants::K_DESC, String::from("Open file manager")),
+        ]));
 
-    #[test]
-    fn test_args_extraction_non_existent() {
-        let expected_fallback: &str = "Hello, World!";
-        let test_case_buf = crate::parse_args();
-        let test_case = test_case_buf
-            .value_of("some-random-arg")
-            .unwrap_or_else(|| expected_fallback);
-
-        assert_eq!(test_case, expected_fallback);
+        assert_eq!(crate::extract_bind(&test_case), result);
     }
 }
