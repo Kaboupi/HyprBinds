@@ -22,7 +22,7 @@ fn main() {
     if let Ok(f) = File::open(&path) {
         let reader = BufReader::new(f);
         let commands = Commands::from_reader(reader);
-        commands.show();
+        commands.show(); // commands - Vec<HashMap<&str, String>>
     } else {
         eprintln!("Error: file not found: `{}`", &path);
     }
